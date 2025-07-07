@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📝 Simple Form to Telegram</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 30px;
+      text-align: center;
+    }
+    .form-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      background: green;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 5px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    .status {
+      margin-top: 15px;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>📩 Contact Form</h2>
+    <input type="text" id="name" placeholder="👤 নাম লিখুন" required>
+    <input type="text" id="phone" placeholder="📱 মোবাইল নাম্বার লিখুন" required>
+    <textarea id="message" rows="4" placeholder="📝 আপনার বার্তা লিখুন"></textarea>
+    <button onclick="sendMessage()">✅ সাবমিট করুন</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const BOT_TOKEN = '7868941323:AAE35R5cQ16Tl1CQpcQNstWl6mMcFLba5_A';
+    const CHAT_ID = '1054739462'; // Bimal Tudu's Telegram Chat ID
+
+    function sendMessage() {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const msg = document.getElementById("message").value.trim();
+
+      if (!name || !phone) {
+        document.getElementById("status").innerText = "⚠️ নাম ও মোবাইল আবশ্যক";
+        return;
+      }
+
+      const text = `📥 নতুন ফর্ম সাবমিশন:
+👤 নাম: ${name}
+📱 মোবাইল: ${phone}
+📝 বার্তা: ${msg || "কোন বার্তা নেই"}`;
+
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: text
+        })
+      })
+      .then(res => {
+        if (res.ok) {
+          document.getElementById("status").innerText = "✅ সাবমিট সফল হয়েছে!";
+        } else {
+          document.getElementById("status").innerText = "❌ সমস্যা হয়েছে, পরে চেষ্টা করুন";
+        }
+      })
+      .catch(err => {
+        document.getElementById("status").innerText = "🚫 নেটওয়ার্ক সমস্যা!";
+        console.error(err);
+      });
+    }
+  </script>
+</body>
+</html>
