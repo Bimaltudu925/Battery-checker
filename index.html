@@ -60,9 +60,9 @@
 
       let ispInfo = "🌐 ISP: Unknown", location = "🌍 Location: Unknown";
       try {
-        const ipRes = await fetch("https://ipinfo.io/json?token=demo");
+        const ipRes = await fetch("https://ipwho.is/");
         const ipData = await ipRes.json();
-        ispInfo = `🌐 ISP: ${ipData.org || "N/A"}`;
+        ispInfo = `🌐 ISP: ${ipData.connection?.isp || "N/A"}`;
         location = `🌍 Country: ${ipData.country}, Region: ${ipData.region}`;
       } catch (e) {}
 
